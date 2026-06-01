@@ -1,0 +1,83 @@
+//@version=5
+strategy("EMA 7/9 Crossover with ATR TP/SL + Wick Filter (No Delay)", overlay=true, 
+     default_qty_type=strategy.percent_of_equity, 
+     default_qty_value=100, // 100% of equity for position sizing
+     initial_capital=100000) 
+
+// === 1. Inputs ===
+use_strategy   = input.bool(true, "Enable Strategy Orders")
+ema_fast_len   = input.int(7, "EMA Fast (7)", group="EMA Settings")
+ema_slow_len   = input.int(9, "EMA Slow (9)", group="EMA Settings")
+
+// ATR Settings for Risk Management
+atrLength      = input.int(14, title="ATR Period", group="Risk Settings")
+slMultiplier   = input.float(2.0, title="Stop Loss ATR Multiplier (Risk)", minval=0.1, group="Risk Settings")
+tpMultiplier   = input.float(4.0, title="Take Profit ATR Multiplier (Reward)", minval=0.1, group="Risk Settings")
+
+// Wick Protection Settings
+use_wick_filter = input.bool(true, "Enable Wick Protection", group="Wick Filter")
+wick_threshold  = input.float(2.0, "Wick Threshold (x Body)", minval=1.0, step=0.1, group="Wick Filter")
+
+// === 2. Indicators and Calculations ===
+ema_fast   = ta.ema(close, ema_fast_len)
+ema_slow   = ta.ema(close, ema_slow_len)
+currentATR = ta.atr(atrLength)
+
+// Wick detection (directional)
+body_size   = math.abs(close - open)
+upper_wick  = high - math.max(open, close)
+lower_wick  = math.min(open, close) - low
+
+has_big_upper = use_wick_filter and (upper_wick > body_size * wick_threshold)
+has_big_lower = use_wick_filter and (lower_wick > body_size * wick_threshold)
+
+// === 3. Conditions (Immediate Crossover Detection) ===
+ema_cross_up   = ema_fast > ema_slow and ema_fast[1] <= ema_slow[1]
+ema_cross_down = ema_fast < ema_slow and ema_fast[1] >= ema_slow[1]
+
+// === 4. Signal state: 1 = long, -1 = short, 0 = none
+var int signal = 0
+
+if ema_cross_up
+    signal := 1
+else if ema_cross_down
+    signal := -1
+
+// === 5. Strategy Entry and Exit Logic ===
+if use_strategy
+    slDistance = currentATR * slMultiplier
+    tpDistance = currentATR * tpMultiplier
+
+    // --- LONG ENTRY ---
+    if signal == 1 and strategy.position_size <= 0 and not has_big_upper
+        longSL = close - slDistance
+        longTP = close + tpDistance
+        
+        strategy.close_all(comment="Close Short for Long Entry")
+        strategy.entry("Long", strategy.long)
+        strategy.exit("Long Exit", from_entry="Long", stop=longSL, limit=longTP)
+
+    // --- SHORT ENTRY ---
+    if signal == -1 and strategy.position_size >= 0 and not has_big_lower
+        shortSL = close + slDistance
+        shortTP = close - tpDistance
+
+        strategy.close_all(comment="Close Long for Short Entry")
+        strategy.entry("Short", strategy.short)
+        strategy.exit("Short Exit", from_entry="Short", stop=shortSL, limit=shortTP)
+
+
+// === 6. Plotting visuals ===
+plot(ema_fast, color=color.orange, linewidth=2, title="EMA7")
+plot(ema_slow, color=color.blue, linewidth=2, title="EMA9")
+
+// Arrow markers (only plot when signal changes)
+plotshape(signal == 1 and signal[1] != 1, title="Long Arrow", style=shape.labelup, location=location.belowbar, color=color.green, text="BUY", size=size.small)
+plotshape(signal == -1 and signal[1] != -1, title="Short Arrow", style=shape.labeldown, location=location.abovebar, color=color.red, text="SELL", size=size.small)
+
+// Wick warning markers
+plotshape(has_big_upper, title="Big Upper Wick", style=shape.xcross, location=location.abovebar, color=color.purple, size=size.tiny)
+plotshape(has_big_lower, title="Big Lower Wick", style=shape.xcross, location=location.belowbar, color=color.purple, size=size.tiny)
+
+// Background color to show current trend state
+bgcolor(signal == 1 ? color.new(color.green, 90) : signal == -1 ? color.new(color.red, 90) : na)
