@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,7 +242,7 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
           <button class="tf-btn" onclick="setTF('15minute')" id="tf-15minute">15m</button>
           <button class="tf-btn" onclick="setTF('30minute')" id="tf-30minute">30m</button>
           <button class="tf-btn" onclick="setTF('1hour')" id="tf-1hour">1h</button>
-          <button class="tf-btn act" id="tf-5minute">5m</button>
+          <button class="tf-btn act" onclick="setTF('5minute')" id="tf-5minute">5m</button>
           <button class="tf-btn" onclick="setTF('week')" id="tf-week">1W</button>
           <button class="ind-btn" id="indToggle" onclick="toggleInd()">Ind</button>
           <div id="indPanel">
@@ -278,21 +277,250 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 
     <div class="ctrl-row">
       <div style="position:relative;flex:1;min-width:150px;">
-        <input type="text" id="symSearch" placeholder="Search symbol..." autocomplete="off" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--t1);padding:8px 10px;border-radius:5px;font-size:12px;" oninput="filterSymbols()" onfocus="openSymDrop()" onblur="setTimeout(closeSymDrop,200)">
+        <input type="text" id="symSearch" placeholder="Search symbol..." autocomplete="off"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--t1);padding:8px 10px;border-radius:5px;font-size:12px;"
+          oninput="filterSymbols()" onfocus="openSymDrop()" onblur="setTimeout(closeSymDrop,200)">
         <div id="symDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1a2333;border:1px solid var(--border);border-radius:6px;z-index:500;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.6);margin-top:2px;"></div>
         <input type="hidden" id="symSel">
       </div>
       <select id="expSel"><option value="">-- Expiry --</option></select>
       <button class="btn-load" onclick="fetchChain()">Load Chain</button>
+
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px;">
         <label style="font-size:10px; color:var(--t2);">Min Build (K)</label>
         <input type="number" id="cfgBuild" value="500" min="100" step="100" style="width:70px; background:var(--bg); border:1px solid var(--border); color:var(--t1); padding:4px; border-radius:3px; font-size:11px;">
         <label style="font-size:10px; color:var(--t2);">Min OI (K)</label>
         <input type="number" id="cfgMinOI" value="1000" min="100" step="100" style="width:70px; background:var(--bg); border:1px solid var(--border); color:var(--t1); padding:4px; border-radius:3px; font-size:11px;">
-        <label style="font-size:10px; display:flex; align-items:center; gap:3px; color:var(--t2); margin-left:8px;"><input type="checkbox" id="cfgUsePCR" checked> Use PCR</label>
-        <label style="font-size:10px; display:flex; align-items:center; gap:3px; color:var(--t2);"><input type="checkbox" id="cfgUseCov" checked> Cover/Unwind</label>
+        <label style="font-size:10px; display:flex; align-items:center; gap:3px; color:var(--t2); margin-left:8px;">
+          <input type="checkbox" id="cfgUsePCR" checked> Use PCR
+        </label>
+        <label style="font-size:10px; display:flex; align-items:center; gap:3px; color:var(--t2);">
+          <input type="checkbox" id="cfgUseCov" checked> Cover/Unwind
+        </label>
       </div>
     </div>
+
+    <script>
+    // ── FULL F&O + INDEX SYMBOL LIST ──
+    var SYM_LIST = [
+      {g:'Index', v:'NSE_INDEX|Nifty 50',         n:'NIFTY 50'},
+      {g:'Index', v:'NSE_INDEX|Nifty Bank',        n:'BANKNIFTY'},
+      {g:'Index', v:'NSE_INDEX|Nifty Fin Service', n:'FINNIFTY'},
+      {g:'Index', v:'NSE_INDEX|Nifty Midcap Select',n:'MIDCPNIFTY'},
+      {g:'Index', v:'BSE_INDEX|SENSEX',             n:'SENSEX'},
+      {g:'Index', v:'BSE_INDEX|BANKEX',             n:'BANKEX'},
+      {g:'NIFTY50', v:'NSE_EQ|INE002A01018', n:'RELIANCE'},
+      {g:'NIFTY50', v:'NSE_EQ|INE467B01029', n:'TCS'},
+      {g:'NIFTY50', v:'NSE_EQ|INE009A01021', n:'INFOSYS'},
+      {g:'NIFTY50', v:'NSE_EQ|INE040A01034', n:'HDFCBANK'},
+      {g:'NIFTY50', v:'NSE_EQ|INE397D01024', n:'ICICIBANK'},
+      {g:'NIFTY50', v:'NSE_EQ|INE585B01010', n:'KOTAKBANK'},
+      {g:'NIFTY50', v:'NSE_EQ|INE090A01021', n:'SBI'},
+      {g:'NIFTY50', v:'NSE_EQ|INE062A01020', n:'AXISBANK'},
+      {g:'NIFTY50', v:'NSE_EQ|INE018A01030', n:'HINDUNILVR'},
+      {g:'NIFTY50', v:'NSE_EQ|INE030A01027', n:'ITC'},
+      {g:'NIFTY50', v:'NSE_EQ|INE066A01021', n:'WIPRO'},
+      {g:'NIFTY50', v:'NSE_EQ|INE669C01036', n:'HCLTECH'},
+      {g:'NIFTY50', v:'NSE_EQ|INE129A01019', n:'SUNPHARMA'},
+      {g:'NIFTY50', v:'NSE_EQ|INE214T01019', n:'BAJFINANCE'},
+      {g:'NIFTY50', v:'NSE_EQ|INE296A01024', n:'BAJAJFINSV'},
+      {g:'NIFTY50', v:'NSE_EQ|INE101A01026', n:'BHARTIARTL'},
+      {g:'NIFTY50', v:'NSE_EQ|INE117A01022', n:'ASIANPAINT'},
+      {g:'NIFTY50', v:'NSE_EQ|INE001A01036', n:'ADANIPORTS'},
+      {g:'NIFTY50', v:'NSE_EQ|INE038A01020', n:'NTPC'},
+      {g:'NIFTY50', v:'NSE_EQ|INE019A01038', n:'POWERGRID'},
+      {g:'NIFTY50', v:'NSE_EQ|INE010B01027', n:'TITAN'},
+      {g:'NIFTY50', v:'NSE_EQ|INE861G01027', n:'NESTLEIND'},
+      {g:'NIFTY50', v:'NSE_EQ|INE176B01034', n:'ULTRACEMCO'},
+      {g:'NIFTY50', v:'NSE_EQ|INE211B01039', n:'MARUTI'},
+      {g:'NIFTY50', v:'NSE_EQ|INE721A01013', n:'TATAMOTORS'},
+      {g:'NIFTY50', v:'NSE_EQ|INE081A01020', n:'TATASTEEL'},
+      {g:'NIFTY50', v:'NSE_EQ|INE245A01021', n:'JSWSTEEL'},
+      {g:'NIFTY50', v:'NSE_EQ|INE094B01011', n:'HINDALCO'},
+      {g:'NIFTY50', v:'NSE_EQ|INE522F01014', n:'COALINDIA'},
+      {g:'NIFTY50', v:'NSE_EQ|INE103A01014', n:'ONGC'},
+      {g:'NIFTY50', v:'NSE_EQ|INE242A01010', n:'BPCL'},
+      {g:'NIFTY50', v:'NSE_EQ|INE154A01025', n:'IOC'},
+      {g:'NIFTY50', v:'NSE_EQ|INE121A01024', n:'HDFCLIFE'},
+      {g:'NIFTY50', v:'NSE_EQ|INE795G01014', n:'SBILIFE'},
+      {g:'NIFTY50', v:'NSE_EQ|INE491A01021', n:'CIPLA'},
+      {g:'NIFTY50', v:'NSE_EQ|INE200A01026', n:'DRREDDY'},
+      {g:'NIFTY50', v:'NSE_EQ|INE028A01039', n:'DIVISLAB'},
+      {g:'NIFTY50', v:'NSE_EQ|INE437A01024', n:'APOLLOHOSP'},
+      {g:'NIFTY50', v:'NSE_EQ|INE356A01018', n:'GRASIM'},
+      {g:'NIFTY50', v:'NSE_EQ|INE158A01026', n:'TECHM'},
+      {g:'NIFTY50', v:'NSE_EQ|INE092A01019', n:'EICHERMOT'},
+      {g:'NIFTY50', v:'NSE_EQ|INE148O01028', n:'SHRIRAMFIN'},
+      {g:'NIFTY50', v:'NSE_EQ|INE148A01017', n:'TRENT'},
+      {g:'F&O', v:'NSE_EQ|INE070A01015', n:'ABB'},
+      {g:'F&O', v:'NSE_EQ|INE733E01010', n:'ADANIENT'},
+      {g:'F&O', v:'NSE_EQ|INE212H01026', n:'ADANIGREEN'},
+      {g:'F&O', v:'NSE_EQ|INE931S01010', n:'ADANITRANS'},
+      {g:'F&O', v:'NSE_EQ|INE423A01024', n:'AMBUJACEM'},
+      {g:'F&O', v:'NSE_EQ|INE364U01010', n:'ANGELONE'},
+      {g:'F&O', v:'NSE_EQ|INE272A01014', n:'AUROPHARMA'},
+      {g:'F&O', v:'NSE_EQ|INE040H01021', n:'BAJAJ-AUTO'},
+      {g:'F&O', v:'NSE_EQ|INE229A01013', n:'BALKRISIND'},
+      {g:'F&O', v:'NSE_EQ|INE523B01011', n:'BANDHANBNK'},
+      {g:'F&O', v:'NSE_EQ|INE028P01028', n:'BANKBARODA'},
+      {g:'F&O', v:'NSE_EQ|INE918I01026', n:'BERGEPAINT'},
+      {g:'F&O', v:'NSE_EQ|INE202B01023', n:'BHARATFORG'},
+      {g:'F&O', v:'NSE_EQ|INE498L01015', n:'BHARTIHEXA'},
+      {g:'F&O', v:'NSE_EQ|INE192A01025', n:'BOSCHLTD'},
+      {g:'F&O', v:'NSE_EQ|INE376G01013', n:'BSE'},
+      {g:'F&O', v:'NSE_EQ|INE683A01023', n:'CANBK'},
+      {g:'F&O', v:'NSE_EQ|INE688A01022', n:'CHOLAFIN'},
+      {g:'F&O', v:'NSE_EQ|INE059A01026', n:'COLPAL'},
+      {g:'F&O', v:'NSE_EQ|INE694A01020', n:'CONCOR'},
+      {g:'F&O', v:'NSE_EQ|INE360B01014', n:'COROMANDEL'},
+      {g:'F&O', v:'NSE_EQ|INE130A01019', n:'CUMMINSIND'},
+      {g:'F&O', v:'NSE_EQ|INE600L01024', n:'DELHIVERY'},
+      {g:'F&O', v:'NSE_EQ|INE195A01028', n:'ESCORTS'},
+      {g:'F&O', v:'NSE_EQ|INE463H01024', n:'FEDERALBNK'},
+      {g:'F&O', v:'NSE_EQ|INE484J01027', n:'GAIL'},
+      {g:'F&O', v:'NSE_EQ|INE259A01022', n:'GODREJCP'},
+      {g:'F&O', v:'NSE_EQ|INE047A01021', n:'GODREJPROP'},
+      {g:'F&O', v:'NSE_EQ|INE749A01030', n:'GRANULES'},
+      {g:'F&O', v:'NSE_EQ|INE239A01016', n:'GSPL'},
+      {g:'F&O', v:'NSE_EQ|INE121E01018', n:'HAVELLS'},
+      {g:'F&O', v:'NSE_EQ|INE158A01026', n:'HEROMOTOCO'},
+      {g:'F&O', v:'NSE_EQ|INE093I01010', n:'HINDPETRO'},
+      {g:'F&O', v:'NSE_EQ|INE647O01011', n:'HINDCOPPER'},
+      {g:'F&O', v:'NSE_EQ|INE158B01016', n:'IDFCFIRSTB'},
+      {g:'F&O', v:'NSE_EQ|INE257A01026', n:'IEX'},
+      {g:'F&O', v:'NSE_EQ|INE170A01029', n:'IFCI'},
+      {g:'F&O', v:'NSE_EQ|INE203G01027', n:'INDHOTEL'},
+      {g:'F&O', v:'NSE_EQ|INE565A01014', n:'INDIACEM'},
+      {g:'F&O', v:'NSE_EQ|INE596I01012', n:'INDIAMART'},
+      {g:'F&O', v:'NSE_EQ|INE530B01024', n:'INDUSINDBK'},
+      {g:'F&O', v:'NSE_EQ|INE241A01023', n:'IOB'},
+      {g:'F&O', v:'NSE_EQ|INE628A01036', n:'IRCTC'},
+      {g:'F&O', v:'NSE_EQ|INE019J01012', n:'IRFC'},
+      {g:'F&O', v:'NSE_EQ|INE136B01020', n:'JKCEMENT'},
+      {g:'F&O', v:'NSE_EQ|INE749I01015', n:'JUBLFOOD'},
+      {g:'F&O', v:'NSE_EQ|INE742F01042', n:'KAJARIACER'},
+      {g:'F&O', v:'NSE_EQ|INE237A01028', n:'LALPATHLAB'},
+      {g:'F&O', v:'NSE_EQ|INE018A01030', n:'LT'},
+      {g:'F&O', v:'NSE_EQ|INE214H01012', n:'LTIM'},
+      {g:'F&O', v:'NSE_EQ|INE581B01020', n:'LTTS'},
+      {g:'F&O', v:'NSE_EQ|INE101D01020', n:'LUPIN'},
+      {g:'F&O', v:'NSE_EQ|INE804I01021', n:'M&MFIN'},
+      {g:'F&O', v:'NSE_EQ|INE101A01026', n:'M&M'},
+      {g:'F&O', v:'NSE_EQ|INE774D01024', n:'MANAPPURAM'},
+      {g:'F&O', v:'NSE_EQ|INE585B01010', n:'MARICO'},
+      {g:'F&O', v:'NSE_EQ|INE101A01026', n:'MCDOWELL-N'},
+      {g:'F&O', v:'NSE_EQ|INE356A01018', n:'MCX'},
+      {g:'F&O', v:'NSE_EQ|INE202B01023', n:'METROPOLIS'},
+      {g:'F&O', v:'NSE_EQ|INE745G01035', n:'MFSL'},
+      {g:'F&O', v:'NSE_EQ|INE414G01012', n:'MGL'},
+      {g:'F&O', v:'NSE_EQ|INE883A01011', n:'MPHASIS'},
+      {g:'F&O', v:'NSE_EQ|INE249A01021', n:'MUTHOOTFIN'},
+      {g:'F&O', v:'NSE_EQ|INE585B01010', n:'NAUKRI'},
+      {g:'F&O', v:'NSE_EQ|INE415G01027', n:'NIFTYIT'},
+      {g:'F&O', v:'NSE_EQ|INE316A01017', n:'NMDC'},
+      {g:'F&O', v:'NSE_EQ|INE647O01011', n:'OBEROIRLTY'},
+      {g:'F&O', v:'NSE_EQ|INE274G01010', n:'OFSS'},
+      {g:'F&O', v:'NSE_EQ|INE214T01019', n:'PEL'},
+      {g:'F&O', v:'NSE_EQ|INE455K01017', n:'PERSISTENT'},
+      {g:'F&O', v:'NSE_EQ|INE318A01026', n:'PETRONET'},
+      {g:'F&O', v:'NSE_EQ|INE318A01026', n:'PFC'},
+      {g:'F&O', v:'NSE_EQ|INE467B01029', n:'PIDILITIND'},
+      {g:'F&O', v:'NSE_EQ|INE503A01015', n:'PIIND'},
+      {g:'F&O', v:'NSE_EQ|INE764C01023', n:'PNB'},
+      {g:'F&O', v:'NSE_EQ|INE392A01028', n:'POLYCAB'},
+      {g:'F&O', v:'NSE_EQ|INE685A01028', n:'SAIL'},
+      {g:'F&O', v:'NSE_EQ|INE364E01013', n:'SBICARD'},
+      {g:'F&O', v:'NSE_EQ|INE655A01013', n:'SIEMENS'},
+      {g:'F&O', v:'NSE_EQ|INE089A01023', n:'SOBHA'},
+      {g:'F&O', v:'NSE_EQ|INE040A01034', n:'SRTRANSFIN'},
+      {g:'F&O', v:'NSE_EQ|INE010B01027', n:'STARTCEMENT'},
+      {g:'F&O', v:'NSE_EQ|INE316A01017', n:'SUPREMEIND'},
+      {g:'F&O', v:'NSE_EQ|INE044A01036', n:'TATACOMM'},
+      {g:'F&O', v:'NSE_EQ|INE895D01011', n:'TATACONSUM'},
+      {g:'F&O', v:'NSE_EQ|INE155A01022', n:'TATAELXSI'},
+      {g:'F&O', v:'NSE_EQ|INE245A01021', n:'TATAMTRDVR'},
+      {g:'F&O', v:'NSE_EQ|INE280A01028', n:'TATAPOWER'},
+      {g:'F&O', v:'NSE_EQ|INE155A01022', n:'TVSMOTOR'},
+      {g:'F&O', v:'NSE_EQ|INE528G01035', n:'UBL'},
+      {g:'F&O', v:'NSE_EQ|INE628A01036', n:'UCOBANK'},
+      {g:'F&O', v:'NSE_EQ|INE628A01036', n:'UNIONBANK'},
+      {g:'F&O', v:'NSE_EQ|INE854D01024', n:'UPL'},
+      {g:'F&O', v:'NSE_EQ|INE758T01015', n:'VEDL'},
+      {g:'F&O', v:'NSE_EQ|INE101B01022', n:'VOLTAS'},
+      {g:'F&O', v:'NSE_EQ|INE066A01021', n:'ZOMATO'},
+      {g:'F&O', v:'NSE_EQ|INE010D01021', n:'ZYDUSLIFE'},
+    ];
+
+    var symDropOpen = false;
+
+    function renderSymDrop(filter) {
+      var drop = document.getElementById('symDrop');
+      var q = (filter||'').toLowerCase().trim();
+      var filtered = q ? SYM_LIST.filter(function(s){ return s.n.toLowerCase().indexOf(q)>=0 || s.g.toLowerCase().indexOf(q)>=0; }) : SYM_LIST;
+      if (!filtered.length) { drop.innerHTML = '<div style="padding:10px;color:var(--t2);font-size:11px;">No results</div>'; return; }
+      var lastGroup = '';
+      var html = '';
+      filtered.forEach(function(s) {
+        if (s.g !== lastGroup) {
+          html += '<div style="padding:5px 10px 3px;font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;background:rgba(0,0,0,0.3);">'+s.g+'</div>';
+          lastGroup = s.g;
+        }
+        html += '<div class="sym-opt" onclick="selectSym(\''+s.v+'\',\''+s.n+'\')" style="padding:7px 12px;cursor:pointer;font-size:12px;color:var(--t1);">'+s.n+'</div>';
+      });
+      drop.innerHTML = html;
+    }
+
+    function openSymDrop() {
+      document.getElementById('symDrop').style.display = 'block';
+      renderSymDrop(document.getElementById('symSearch').value);
+    }
+
+    function closeSymDrop() {
+      document.getElementById('symDrop').style.display = 'none';
+    }
+
+    function filterSymbols() {
+      renderSymDrop(document.getElementById('symSearch').value);
+      document.getElementById('symDrop').style.display = 'block';
+    }
+
+    function selectSym(val, name) {
+      document.getElementById('symSearch').value = name;
+      document.getElementById('symSel').value = val;
+      document.getElementById('symDrop').style.display = 'none';
+      curIK = val;
+      $('symLbl').textContent = name;
+      cData = [];
+      prevCB = 0; prevPB = 0;
+      prevSignal = null; signalCount = 0;
+      lastSignal = '';
+      signalMarkers = [];
+      pendingSignal = ''; pendingCount = 0; confirmedSignal = '';
+      prevNetCall = 0; prevNetPut = 0; prevPCR = 0;
+      prevCU_rev = 0; prevPU_rev = 0;
+      pcrRisingCount = 0; pcrFallingCount = 0;
+      reversalAlert = ''; prevReversalAlert = '';
+      if ($('revBar')) $('revBar').style.display = 'none';
+      loadExpiries();
+      loadCandles(curIK, curTF, false);
+    }
+
+    document.addEventListener('mouseover', function(e) {
+      if (e.target.classList.contains('sym-opt')) {
+        e.target.style.background = 'rgba(59,130,246,0.15)';
+      }
+    });
+    document.addEventListener('mouseout', function(e) {
+      if (e.target.classList.contains('sym-opt')) {
+        e.target.style.background = '';
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('symSearch').value = 'NIFTY 50';
+      document.getElementById('symSel').value = 'NSE_INDEX|Nifty 50';
+    });
+    </script>
 
     <div class="chain-card">
       <div class="chain-hdr">Option Chain <span class="badge" id="chainCount">0</span>
@@ -300,20 +528,32 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
       </div>
       <div class="chain-wrap">
         <table class="ctbl">
-          <thead><tr><th>Strike</th><th>CE LTP</th><th>CE OI</th><th>CE Build</th><th>PE LTP</th><th>PE OI</th><th>PE Build</th><th>Signal</th></tr></thead>
-          <tbody id="chainBody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t2);">Load chain to view</td></tr></tbody>
+          <thead><tr>
+            <th>Strike</th>
+            <th>CE LTP</th><th>CE OI</th><th>CE Build</th>
+            <th>PE LTP</th><th>PE OI</th><th>PE Build</th>
+            <th>Signal</th>
+          </tr></thead>
+          <tbody id="chainBody">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t2);">Load chain to view</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
     <div class="sig-log-card">
-      <div class="sig-log-hdr" onclick="toggleSigLog()">Signal History (<span id="sigLogCount">0</span>) <span id="sigLogToggle">▼</span></div>
+      <div class="sig-log-hdr" onclick="toggleSigLog()">
+        Signal History (<span id="sigLogCount">0</span>) <span id="sigLogToggle">▼</span>
+      </div>
       <div class="sig-log-body" id="sigLogBody"></div>
     </div>
 
     <div class="trade-card">
-      <div class="trade-hdr" onclick="toggleTrade()">Trading Bot <span id="tradeToggle">▼</span></div>
+      <div class="trade-hdr" onclick="toggleTrade()">
+        Trading Bot <span id="tradeToggle">▼</span>
+      </div>
       <div class="trade-body" id="tradeBody">
+
         <div id="sessionPL" style="background:linear-gradient(135deg,#070b10,#0d1117);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;">
           <div style="font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Session P&L</div>
           <div id="sessionPLVal" style="font-size:22px;font-weight:800;color:var(--green);">₹0.00</div>
@@ -326,7 +566,10 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 
         <div id="activeTrade" style="display:none;border-radius:8px;margin-bottom:10px;overflow:hidden;">
           <div id="activeTradeHdr" style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:8px;"><span id="atDir" style="font-size:12px;font-weight:800;"></span><span style="font-size:9px;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;color:#fff;">LIVE</span></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span id="atDir" style="font-size:12px;font-weight:800;"></span>
+              <span style="font-size:9px;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;color:#fff;">LIVE</span>
+            </div>
             <span id="atTime" style="font-size:10px;opacity:0.7;"></span>
           </div>
           <div style="background:rgba(0,0,0,0.3);padding:10px 12px;">
@@ -337,15 +580,28 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
               <div style="text-align:center;"><div style="font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;">P&L ₹</div><div id="atPLrs" style="font-size:12px;font-weight:700;"></div></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;font-size:10px;">
-              <div style="background:rgba(255,51,102,0.12);border:1px solid rgba(255,51,102,0.3);border-radius:5px;padding:5px 8px;"><div style="color:rgba(255,255,255,0.5);font-size:8px;">STOP LOSS</div><div id="atSLval" style="color:#ff3366;font-weight:700;font-size:11px;cursor:pointer;" onclick="editSL()">-- ✎</div></div>
-              <div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);border-radius:5px;padding:5px 8px;"><div style="color:rgba(255,255,255,0.5);font-size:8px;">TARGET</div><div id="atTPval" style="color:#00ff88;font-weight:700;font-size:11px;cursor:pointer;" onclick="editTP()">-- ✎</div></div>
-              <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:5px;padding:5px 8px;"><div style="color:rgba(255,255,255,0.5);font-size:8px;">TRAIL SL</div><div id="atTrailval" style="color:#fbbf24;font-weight:700;font-size:11px;cursor:pointer;" onclick="toggleTrailSL()">OFF</div></div>
+              <div style="background:rgba(255,51,102,0.12);border:1px solid rgba(255,51,102,0.3);border-radius:5px;padding:5px 8px;">
+                <div style="color:rgba(255,255,255,0.5);font-size:8px;">STOP LOSS</div>
+                <div id="atSLval" style="color:#ff3366;font-weight:700;font-size:11px;cursor:pointer;" onclick="editSL()">-- ✎</div>
+              </div>
+              <div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);border-radius:5px;padding:5px 8px;">
+                <div style="color:rgba(255,255,255,0.5);font-size:8px;">TARGET</div>
+                <div id="atTPval" style="color:#00ff88;font-weight:700;font-size:11px;cursor:pointer;" onclick="editTP()">-- ✎</div>
+              </div>
+              <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:5px;padding:5px 8px;">
+                <div style="color:rgba(255,255,255,0.5);font-size:8px;">TRAIL SL</div>
+                <div id="atTrailval" style="color:#fbbf24;font-weight:700;font-size:11px;cursor:pointer;" onclick="toggleTrailSL()">OFF</div>
+              </div>
             </div>
-            <button onclick="manualClose()" style="width:100%;background:rgba(255,51,102,0.9);color:#fff;border:none;padding:9px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:0.5px;">CLOSE TRADE</button>
+            <button onclick="manualClose()" style="width:100%;background:rgba(255,51,102,0.9);color:#fff;border:none;padding:9px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:0.5px;">
+              CLOSE TRADE
+            </button>
           </div>
         </div>
 
-        <div id="noTrade" style="text-align:center;padding:14px;color:var(--t2);font-size:11px;border:1px dashed var(--border);border-radius:8px;margin-bottom:10px;">No open position</div>
+        <div id="noTrade" style="text-align:center;padding:14px;color:var(--t2);font-size:11px;border:1px dashed var(--border);border-radius:8px;margin-bottom:10px;">
+          No open position
+        </div>
 
         <div class="trade-mode" style="margin-bottom:8px;">
           <label><input type="radio" name="tradeMode" value="paper" checked onchange="setTradeMode()"> Paper</label>
@@ -353,12 +609,13 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
         </div>
         <div class="trade-cfg" style="margin-bottom:8px;">
           <div><label style="font-size:9px;color:var(--t2);">Qty/Lots</label><input type="number" id="tradeQty" value="1" min="1" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;color:var(--t1);border-radius:4px;font-size:11px;"></div>
-          <div><label style="font-size:9px;color:var(--t2);">SL %</label><input type="number" id="tradeSL" value="0.5" min="0.1" step="0.1" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;color:var(--t1);border-radius:4px;font-size:11px;"></div>
+          <div><label style="font-size:9px;color:var(--t2);">SL %</label><input type="number" id="tradeSL" value="0.75" min="0.1" step="0.1" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;color:var(--t1);border-radius:4px;font-size:11px;"></div>
           <div><label style="font-size:9px;color:var(--t2);">TP %</label><input type="number" id="tradeTP" value="1.5" min="0.1" step="0.1" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;color:var(--t1);border-radius:4px;font-size:11px;"></div>
         </div>
 
         <div class="trade-status stopped" id="tradeStatus">Stopped</div>
         <button class="start" id="tradeBtn" onclick="toggleTradeBot()">▶ Start Bot</button>
+
         <div id="tradeLog" style="margin-top:8px;max-height:180px;overflow-y:auto;"></div>
       </div>
     </div>
@@ -367,11 +624,31 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 
 <div id="emaModal">
   <div class="mbox">
-    <div class="mf"><label>Period</label><input type="number" id="mPer" value="9" min="1" max="500"></div>
-    <div class="mf"><label>Source</label><select id="mSrc"><option value="close">Close</option><option value="open">Open</option><option value="high">High</option><option value="low">Low</option></select></div>
-    <div class="mf"><label>Color</label><div class="color-row" id="swatches"></div></div>
-    <div class="mf"><label>Line Width</label><input type="number" id="mWid" value="1" min="1" max="4"></div>
-    <div class="mact"><button class="btn-ok" onclick="applyModal()">Apply</button><button class="btn-del" onclick="deleteModal()">Remove</button></div>
+    <div class="mf">
+      <label>Period</label>
+      <input type="number" id="mPer" value="9" min="1" max="500">
+    </div>
+    <div class="mf">
+      <label>Source</label>
+      <select id="mSrc">
+        <option value="close">Close</option>
+        <option value="open">Open</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+    <div class="mf">
+      <label>Color</label>
+      <div class="color-row" id="swatches"></div>
+    </div>
+    <div class="mf">
+      <label>Line Width</label>
+      <input type="number" id="mWid" value="1" min="1" max="4">
+    </div>
+    <div class="mact">
+      <button class="btn-ok" onclick="applyModal()">Apply</button>
+      <button class="btn-del" onclick="deleteModal()">Remove</button>
+    </div>
   </div>
 </div>
 
@@ -405,7 +682,7 @@ var lastSignal = '';
 var tradeMode = 'paper';
 var tradeRunning = false;
 var tradeLog = [];
-var tradeEntry = {};
+var tradeEntry = {};   // { signal:'BULL'/'BEAR', optionKey, entry, qty, entryTime, strike, optionType }
 var totalProfit = 0, totalLoss = 0, totalTrades = 0;
 
 var prevCB = 0, prevPB = 0;
@@ -455,195 +732,6 @@ var chainTimer = null;
 var chartMinimized = false, chainMinimized = false, emaMinimized = false;
 
 function $(id) { return document.getElementById(id); }
-
-// ==================== SYMBOL LIST & SEARCH ====================
-var SYM_LIST = [
-  {g:'Index', v:'NSE_INDEX|Nifty 50',         n:'NIFTY 50'},
-  {g:'Index', v:'NSE_INDEX|Nifty Bank',        n:'BANKNIFTY'},
-  {g:'Index', v:'NSE_INDEX|Nifty Fin Service', n:'FINNIFTY'},
-  {g:'Index', v:'NSE_INDEX|Nifty Midcap Select',n:'MIDCPNIFTY'},
-  {g:'Index', v:'BSE_INDEX|SENSEX',             n:'SENSEX'},
-  {g:'Index', v:'BSE_INDEX|BANKEX',             n:'BANKEX'},
-  {g:'NIFTY50', v:'NSE_EQ|INE002A01018', n:'RELIANCE'},
-  {g:'NIFTY50', v:'NSE_EQ|INE467B01029', n:'TCS'},
-  {g:'NIFTY50', v:'NSE_EQ|INE009A01021', n:'INFOSYS'},
-  {g:'NIFTY50', v:'NSE_EQ|INE040A01034', n:'HDFCBANK'},
-  {g:'NIFTY50', v:'NSE_EQ|INE397D01024', n:'ICICIBANK'},
-  {g:'NIFTY50', v:'NSE_EQ|INE585B01010', n:'KOTAKBANK'},
-  {g:'NIFTY50', v:'NSE_EQ|INE090A01021', n:'SBI'},
-  {g:'NIFTY50', v:'NSE_EQ|INE062A01020', n:'AXISBANK'},
-  {g:'NIFTY50', v:'NSE_EQ|INE018A01030', n:'HINDUNILVR'},
-  {g:'NIFTY50', v:'NSE_EQ|INE030A01027', n:'ITC'},
-  {g:'NIFTY50', v:'NSE_EQ|INE066A01021', n:'WIPRO'},
-  {g:'NIFTY50', v:'NSE_EQ|INE669C01036', n:'HCLTECH'},
-  {g:'NIFTY50', v:'NSE_EQ|INE129A01019', n:'SUNPHARMA'},
-  {g:'NIFTY50', v:'NSE_EQ|INE214T01019', n:'BAJFINANCE'},
-  {g:'NIFTY50', v:'NSE_EQ|INE296A01024', n:'BAJAJFINSV'},
-  {g:'NIFTY50', v:'NSE_EQ|INE101A01026', n:'BHARTIARTL'},
-  {g:'NIFTY50', v:'NSE_EQ|INE117A01022', n:'ASIANPAINT'},
-  {g:'NIFTY50', v:'NSE_EQ|INE001A01036', n:'ADANIPORTS'},
-  {g:'NIFTY50', v:'NSE_EQ|INE038A01020', n:'NTPC'},
-  {g:'NIFTY50', v:'NSE_EQ|INE019A01038', n:'POWERGRID'},
-  {g:'NIFTY50', v:'NSE_EQ|INE010B01027', n:'TITAN'},
-  {g:'NIFTY50', v:'NSE_EQ|INE861G01027', n:'NESTLEIND'},
-  {g:'NIFTY50', v:'NSE_EQ|INE176B01034', n:'ULTRACEMCO'},
-  {g:'NIFTY50', v:'NSE_EQ|INE211B01039', n:'MARUTI'},
-  {g:'NIFTY50', v:'NSE_EQ|INE721A01013', n:'TATAMOTORS'},
-  {g:'NIFTY50', v:'NSE_EQ|INE081A01020', n:'TATASTEEL'},
-  {g:'NIFTY50', v:'NSE_EQ|INE245A01021', n:'JSWSTEEL'},
-  {g:'NIFTY50', v:'NSE_EQ|INE094B01011', n:'HINDALCO'},
-  {g:'NIFTY50', v:'NSE_EQ|INE522F01014', n:'COALINDIA'},
-  {g:'NIFTY50', v:'NSE_EQ|INE103A01014', n:'ONGC'},
-  {g:'NIFTY50', v:'NSE_EQ|INE242A01010', n:'BPCL'},
-  {g:'NIFTY50', v:'NSE_EQ|INE154A01025', n:'IOC'},
-  {g:'NIFTY50', v:'NSE_EQ|INE121A01024', n:'HDFCLIFE'},
-  {g:'NIFTY50', v:'NSE_EQ|INE795G01014', n:'SBILIFE'},
-  {g:'NIFTY50', v:'NSE_EQ|INE491A01021', n:'CIPLA'},
-  {g:'NIFTY50', v:'NSE_EQ|INE200A01026', n:'DRREDDY'},
-  {g:'NIFTY50', v:'NSE_EQ|INE028A01039', n:'DIVISLAB'},
-  {g:'NIFTY50', v:'NSE_EQ|INE437A01024', n:'APOLLOHOSP'},
-  {g:'NIFTY50', v:'NSE_EQ|INE356A01018', n:'GRASIM'},
-  {g:'NIFTY50', v:'NSE_EQ|INE158A01026', n:'TECHM'},
-  {g:'NIFTY50', v:'NSE_EQ|INE092A01019', n:'EICHERMOT'},
-  {g:'NIFTY50', v:'NSE_EQ|INE148O01028', n:'SHRIRAMFIN'},
-  {g:'NIFTY50', v:'NSE_EQ|INE148A01017', n:'TRENT'},
-  {g:'F&O', v:'NSE_EQ|INE070A01015', n:'ABB'},
-  {g:'F&O', v:'NSE_EQ|INE733E01010', n:'ADANIENT'},
-  {g:'F&O', v:'NSE_EQ|INE212H01026', n:'ADANIGREEN'},
-  {g:'F&O', v:'NSE_EQ|INE931S01010', n:'ADANITRANS'},
-  {g:'F&O', v:'NSE_EQ|INE423A01024', n:'AMBUJACEM'},
-  {g:'F&O', v:'NSE_EQ|INE364U01010', n:'ANGELONE'},
-  {g:'F&O', v:'NSE_EQ|INE272A01014', n:'AUROPHARMA'},
-  {g:'F&O', v:'NSE_EQ|INE040H01021', n:'BAJAJ-AUTO'},
-  {g:'F&O', v:'NSE_EQ|INE229A01013', n:'BALKRISIND'},
-  {g:'F&O', v:'NSE_EQ|INE523B01011', n:'BANDHANBNK'},
-  {g:'F&O', v:'NSE_EQ|INE028P01028', n:'BANKBARODA'},
-  {g:'F&O', v:'NSE_EQ|INE918I01026', n:'BERGEPAINT'},
-  {g:'F&O', v:'NSE_EQ|INE202B01023', n:'BHARATFORG'},
-  {g:'F&O', v:'NSE_EQ|INE498L01015', n:'BHARTIHEXA'},
-  {g:'F&O', v:'NSE_EQ|INE192A01025', n:'BOSCHLTD'},
-  {g:'F&O', v:'NSE_EQ|INE376G01013', n:'BSE'},
-  {g:'F&O', v:'NSE_EQ|INE683A01023', n:'CANBK'},
-  {g:'F&O', v:'NSE_EQ|INE688A01022', n:'CHOLAFIN'},
-  {g:'F&O', v:'NSE_EQ|INE059A01026', n:'COLPAL'},
-  {g:'F&O', v:'NSE_EQ|INE694A01020', n:'CONCOR'},
-  {g:'F&O', v:'NSE_EQ|INE360B01014', n:'COROMANDEL'},
-  {g:'F&O', v:'NSE_EQ|INE130A01019', n:'CUMMINSIND'},
-  {g:'F&O', v:'NSE_EQ|INE600L01024', n:'DELHIVERY'},
-  {g:'F&O', v:'NSE_EQ|INE195A01028', n:'ESCORTS'},
-  {g:'F&O', v:'NSE_EQ|INE463H01024', n:'FEDERALBNK'},
-  {g:'F&O', v:'NSE_EQ|INE484J01027', n:'GAIL'},
-  {g:'F&O', v:'NSE_EQ|INE259A01022', n:'GODREJCP'},
-  {g:'F&O', v:'NSE_EQ|INE047A01021', n:'GODREJPROP'},
-  {g:'F&O', v:'NSE_EQ|INE749A01030', n:'GRANULES'},
-  {g:'F&O', v:'NSE_EQ|INE239A01016', n:'GSPL'},
-  {g:'F&O', v:'NSE_EQ|INE121E01018', n:'HAVELLS'},
-  {g:'F&O', v:'NSE_EQ|INE158A01026', n:'HEROMOTOCO'},
-  {g:'F&O', v:'NSE_EQ|INE093I01010', n:'HINDPETRO'},
-  {g:'F&O', v:'NSE_EQ|INE647O01011', n:'HINDCOPPER'},
-  {g:'F&O', v:'NSE_EQ|INE158B01016', n:'IDFCFIRSTB'},
-  {g:'F&O', v:'NSE_EQ|INE257A01026', n:'IEX'},
-  {g:'F&O', v:'NSE_EQ|INE170A01029', n:'IFCI'},
-  {g:'F&O', v:'NSE_EQ|INE203G01027', n:'INDHOTEL'},
-  {g:'F&O', v:'NSE_EQ|INE565A01014', n:'INDIACEM'},
-  {g:'F&O', v:'NSE_EQ|INE596I01012', n:'INDIAMART'},
-  {g:'F&O', v:'NSE_EQ|INE530B01024', n:'INDUSINDBK'},
-  {g:'F&O', v:'NSE_EQ|INE241A01023', n:'IOB'},
-  {g:'F&O', v:'NSE_EQ|INE628A01036', n:'IRCTC'},
-  {g:'F&O', v:'NSE_EQ|INE019J01012', n:'IRFC'},
-  {g:'F&O', v:'NSE_EQ|INE136B01020', n:'JKCEMENT'},
-  {g:'F&O', v:'NSE_EQ|INE749I01015', n:'JUBLFOOD'},
-  {g:'F&O', v:'NSE_EQ|INE742F01042', n:'KAJARIACER'},
-  {g:'F&O', v:'NSE_EQ|INE237A01028', n:'LALPATHLAB'},
-  {g:'F&O', v:'NSE_EQ|INE018A01030', n:'LT'},
-  {g:'F&O', v:'NSE_EQ|INE214H01012', n:'LTIM'},
-  {g:'F&O', v:'NSE_EQ|INE581B01020', n:'LTTS'},
-  {g:'F&O', v:'NSE_EQ|INE101D01020', n:'LUPIN'},
-  {g:'F&O', v:'NSE_EQ|INE804I01021', n:'M&MFIN'},
-  {g:'F&O', v:'NSE_EQ|INE101A01026', n:'M&M'},
-  {g:'F&O', v:'NSE_EQ|INE774D01024', n:'MANAPPURAM'},
-  {g:'F&O', v:'NSE_EQ|INE585B01010', n:'MARICO'},
-  {g:'F&O', v:'NSE_EQ|INE356A01018', n:'MCX'},
-  {g:'F&O', v:'NSE_EQ|INE745G01035', n:'MFSL'},
-  {g:'F&O', v:'NSE_EQ|INE414G01012', n:'MGL'},
-  {g:'F&O', v:'NSE_EQ|INE883A01011', n:'MPHASIS'},
-  {g:'F&O', v:'NSE_EQ|INE249A01021', n:'MUTHOOTFIN'},
-  {g:'F&O', v:'NSE_EQ|INE316A01017', n:'NMDC'},
-  {g:'F&O', v:'NSE_EQ|INE274G01010', n:'OFSS'},
-  {g:'F&O', v:'NSE_EQ|INE214T01019', n:'PEL'},
-  {g:'F&O', v:'NSE_EQ|INE455K01017', n:'PERSISTENT'},
-  {g:'F&O', v:'NSE_EQ|INE318A01026', n:'PETRONET'},
-  {g:'F&O', v:'NSE_EQ|INE318A01026', n:'PFC'},
-  {g:'F&O', v:'NSE_EQ|INE467B01029', n:'PIDILITIND'},
-  {g:'F&O', v:'NSE_EQ|INE503A01015', n:'PIIND'},
-  {g:'F&O', v:'NSE_EQ|INE764C01023', n:'PNB'},
-  {g:'F&O', v:'NSE_EQ|INE392A01028', n:'POLYCAB'},
-  {g:'F&O', v:'NSE_EQ|INE685A01028', n:'SAIL'},
-  {g:'F&O', v:'NSE_EQ|INE364E01013', n:'SBICARD'},
-  {g:'F&O', v:'NSE_EQ|INE655A01013', n:'SIEMENS'},
-  {g:'F&O', v:'NSE_EQ|INE089A01023', n:'SOBHA'},
-  {g:'F&O', v:'NSE_EQ|INE040A01034', n:'SRTRANSFIN'},
-  {g:'F&O', v:'NSE_EQ|INE044A01036', n:'TATACOMM'},
-  {g:'F&O', v:'NSE_EQ|INE895D01011', n:'TATACONSUM'},
-  {g:'F&O', v:'NSE_EQ|INE155A01022', n:'TATAELXSI'},
-  {g:'F&O', v:'NSE_EQ|INE245A01021', n:'TATAMTRDVR'},
-  {g:'F&O', v:'NSE_EQ|INE280A01028', n:'TATAPOWER'},
-  {g:'F&O', v:'NSE_EQ|INE155A01022', n:'TVSMOTOR'},
-  {g:'F&O', v:'NSE_EQ|INE528G01035', n:'UBL'},
-  {g:'F&O', v:'NSE_EQ|INE628A01036', n:'UCOBANK'},
-  {g:'F&O', v:'NSE_EQ|INE628A01036', n:'UNIONBANK'},
-  {g:'F&O', v:'NSE_EQ|INE854D01024', n:'UPL'},
-  {g:'F&O', v:'NSE_EQ|INE758T01015', n:'VEDL'},
-  {g:'F&O', v:'NSE_EQ|INE101B01022', n:'VOLTAS'},
-  {g:'F&O', v:'NSE_EQ|INE066A01021', n:'ZOMATO'},
-  {g:'F&O', v:'NSE_EQ|INE010D01021', n:'ZYDUSLIFE'},
-];
-
-function renderSymDrop(filter) {
-  var drop = $('symDrop');
-  var q = (filter||'').toLowerCase().trim();
-  var filtered = q ? SYM_LIST.filter(function(s){ return s.n.toLowerCase().indexOf(q)>=0 || s.g.toLowerCase().indexOf(q)>=0; }) : SYM_LIST;
-  if (!filtered.length) { drop.innerHTML = '<div style="padding:10px;color:var(--t2);font-size:11px;">No results</div>'; return; }
-  var lastGroup = '';
-  var html = '';
-  filtered.forEach(function(s) {
-    if (s.g !== lastGroup) {
-      html += '<div style="padding:5px 10px 3px;font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;background:rgba(0,0,0,0.3);">'+s.g+'</div>';
-      lastGroup = s.g;
-    }
-    html += '<div class="sym-opt" onclick="selectSym(\''+s.v+'\',\''+s.n+'\')" style="padding:7px 12px;cursor:pointer;font-size:12px;color:var(--t1);">'+s.n+'</div>';
-  });
-  drop.innerHTML = html;
-}
-
-function openSymDrop() { $('symDrop').style.display = 'block'; renderSymDrop($('symSearch').value); }
-function closeSymDrop() { $('symDrop').style.display = 'none'; }
-function filterSymbols() { renderSymDrop($('symSearch').value); $('symDrop').style.display = 'block'; }
-function selectSym(val, name) {
-  $('symSearch').value = name;
-  $('symSel').value = val;
-  $('symDrop').style.display = 'none';
-  curIK = val;
-  $('symLbl').textContent = name;
-  cData = [];
-  prevCB = 0; prevPB = 0;
-  prevSignal = null; signalCount = 0;
-  lastSignal = '';
-  signalMarkers = [];
-  pendingSignal = ''; pendingCount = 0; confirmedSignal = '';
-  prevNetCall = 0; prevNetPut = 0; prevPCR = 0;
-  prevCU_rev = 0; prevPU_rev = 0;
-  pcrRisingCount = 0; pcrFallingCount = 0;
-  reversalAlert = ''; prevReversalAlert = '';
-  if ($('revBar')) $('revBar').style.display = 'none';
-  loadExpiries();
-  loadCandles(curIK, curTF, false);
-}
-
-window.addEventListener('DOMContentLoaded', function() {
-  $('symSearch').value = 'NIFTY 50';
-  $('symSel').value = 'NSE_INDEX|Nifty 50';
-});
 
 // ==================== CHART ====================
 function initChart() {
@@ -715,7 +803,7 @@ function aggregateBars(minBars, targetMinutes) {
     else {
       var g = grouped[bucket];
       g.high = Math.max(g.high, c.high);
-      g.low = Math.min(g.low, c.low);
+      g.low  = Math.min(g.low,  c.low);
       g.close = c.close;
     }
   });
@@ -995,22 +1083,22 @@ function detectReversal(netCallWrite, netPutWrite, pcr, cU, pU, spot) {
   var alert = null;
   if (ceAccelCount >= 1 && netCallWrite > netPutWrite && totalOI > cfgMinOI) {
     var str = Math.min(3, ceAccelCount);
-    alert = { type: 'CE_ACCEL', label: '🔴 CE Build Accel', bullish: false, strength: str, detail: 'CE Rate:' + ceBuildRoC.toFixed(1) + 'x | Delta:' + Math.round(curCBdelta/1000) + 'K' };
+    alert = { type: 'CE_ACCEL', label: '🔴 CE Build Accel', bullish: false, strength: str };
   } else if (peAccelCount >= 1 && netPutWrite > netCallWrite && totalOI > cfgMinOI) {
     var str2 = Math.min(3, peAccelCount);
-    alert = { type: 'PE_ACCEL', label: '🟢 PE Build Accel', bullish: true, strength: str2, detail: 'PE Rate:' + peBuildRoC.toFixed(1) + 'x | Delta:' + Math.round(curPBdelta/1000) + 'K' };
+    alert = { type: 'PE_ACCEL', label: '🟢 PE Build Accel', bullish: true, strength: str2 };
   } else if (ceDecelCount >= 1 && prevNetCall > cfgMinOI && priceTrend > 10 && !alert) {
-    alert = { type: 'CE_DECEL', label: '⚡ CE Writers Pause', bullish: true, strength: 2, detail: 'CE slowing | NetCE:' + Math.round(netCallWrite/1000) + 'K | Price↑' };
+    alert = { type: 'CE_DECEL', label: '⚡ CE Writers Pause', bullish: true, strength: 2 };
   } else if (peDecelCount >= 1 && prevNetPut > cfgMinOI && priceTrend < -10 && !alert) {
-    alert = { type: 'PE_DECEL', label: '⚡ PE Writers Pause', bullish: false, strength: 2, detail: 'PE slowing | NetPE:' + Math.round(netPutWrite/1000) + 'K | Price↓' };
+    alert = { type: 'PE_DECEL', label: '⚡ PE Writers Pause', bullish: false, strength: 2 };
   } else if (pcrRisingCount >= 2 && prevPCR < 0.85 && !alert) {
-    alert = { type: 'PCR_TURN_UP', label: '📈 PCR Turns Up', bullish: true, strength: pcrRisingCount, detail: 'PCR:' + prevPCR.toFixed(2) + '→' + pcr.toFixed(2) };
+    alert = { type: 'PCR_TURN_UP', label: '📈 PCR Turns Up', bullish: true, strength: pcrRisingCount };
   } else if (pcrFallingCount >= 2 && prevPCR > 1.15 && !alert) {
-    alert = { type: 'PCR_TURN_DN', label: '📉 PCR Turns Down', bullish: false, strength: pcrFallingCount, detail: 'PCR:' + prevPCR.toFixed(2) + '→' + pcr.toFixed(2) };
+    alert = { type: 'PCR_TURN_DN', label: '📉 PCR Turns Down', bullish: false, strength: pcrFallingCount };
   } else if (ceUnwRoC >= 2.0 && curCUdelta > minDeltaForSignal && priceTrend > 15 && !alert) {
-    alert = { type: 'CE_UNWIND_ACCEL', label: '🔄 CE Unwind Surge', bullish: true, strength: 2, detail: 'CE Unwind:' + Math.round(curCUdelta/1000) + 'K | Price↑' };
+    alert = { type: 'CE_UNWIND_ACCEL', label: '🔄 CE Unwind Surge', bullish: true, strength: 2 };
   } else if (peUnwRoC >= 2.0 && curPUdelta > minDeltaForSignal && priceTrend < -15 && !alert) {
-    alert = { type: 'PE_UNWIND_ACCEL', label: '🔄 PE Unwind Surge', bullish: false, strength: 2, detail: 'PE Unwind:' + Math.round(curPUdelta/1000) + 'K | Price↓' };
+    alert = { type: 'PE_UNWIND_ACCEL', label: '🔄 PE Unwind Surge', bullish: false, strength: 2 };
   }
   prevNetCall = netCallWrite; prevNetPut = netPutWrite;
   prevPCR = pcr; prevCU_rev = cU; prevPU_rev = pU;
@@ -1021,13 +1109,12 @@ function detectReversal(netCallWrite, netPutWrite, pcr, cU, pU, spot) {
 
 function showReversalAlert(rev, spot) {
   var bar = $('revBar');
-  if (!rev) { return; }
+  if (!rev) return;
   var isBullRev = rev.bullish === true;
   var stars = '★'.repeat(rev.strength) + '☆'.repeat(Math.max(0, 3 - rev.strength));
   var color = isBullRev ? 'rgba(0,220,130,0.15)' : 'rgba(245,54,92,0.15)';
   var tcolor = isBullRev ? 'var(--green)' : 'var(--red)';
-  var botAction = tradeRunning ? (isBullRev ? ' | 🤖 AUTO: Exit PE → Enter CE' : ' | 🤖 AUTO: Exit CE → Enter PE') : (isBullRev ? ' | Manual: Exit PE → BUY CE' : ' | Manual: Exit CE → BUY PE');
-  var desc = isBullRev ? 'BOUNCE ↑ — ' + rev.detail + botAction : 'DROP ↓ — ' + rev.detail + botAction;
+  var desc = isBullRev ? 'BOUNCE ↑ — ' + rev.detail : 'DROP ↓ — ' + rev.detail;
   bar.style.display = 'block';
   bar.style.background = color;
   bar.style.color = tcolor;
@@ -1063,64 +1150,6 @@ function showReversalAlert(rev, spot) {
 }
 
 // ==================== PROCESS CHAIN ====================
-function calcSupportResistanceLevels(data, spot) {
-  if (!data || !data.length) return { support: [], resistance: [] };
-  var maxCeOI = 0, maxPeOI = 0, maxCeStrike = 0, maxPeStrike = 0;
-  var secondCeOI = 0, secondPeOI = 0, secondCeStrike = 0, secondPeStrike = 0;
-  data.forEach(function(d) {
-    var ce = (d.call_options && d.call_options.market_data) || {};
-    var pe = (d.put_options && d.put_options.market_data) || {};
-    var ceOI = ce.oi || 0, peOI = pe.oi || 0, strike = d.strike_price;
-    if (ceOI > maxCeOI) { secondCeOI = maxCeOI; secondCeStrike = maxCeStrike; maxCeOI = ceOI; maxCeStrike = strike; }
-    else if (ceOI > secondCeOI) { secondCeOI = ceOI; secondCeStrike = strike; }
-    if (peOI > maxPeOI) { secondPeOI = maxPeOI; secondPeStrike = maxPeStrike; maxPeOI = peOI; maxPeStrike = strike; }
-    else if (peOI > secondPeOI) { secondPeOI = peOI; secondPeStrike = strike; }
-  });
-  var resistance = [], support = [];
-  if (maxCeStrike > 0) resistance.push(maxCeStrike);
-  if (secondCeStrike > 0 && secondCeStrike !== maxCeStrike) resistance.push(secondCeStrike);
-  if (maxPeStrike > 0) support.push(maxPeStrike);
-  if (secondPeStrike > 0 && secondPeStrike !== maxPeStrike) support.push(secondPeStrike);
-  resistance.sort(function(a, b) { return b - a; });
-  support.sort(function(a, b) { return a - b; });
-  return { support: support, resistance: resistance };
-}
-
-function calcMaxPain(data, spot) {
-  if (!data || !data.length) return 0;
-  var strikes = {};
-  data.forEach(function(d) {
-    var strike = d.strike_price;
-    if (!strikes[strike]) strikes[strike] = { ceOI: 0, peOI: 0 };
-    var ce = (d.call_options && d.call_options.market_data) || {};
-    var pe = (d.put_options && d.put_options.market_data) || {};
-    strikes[strike].ceOI += ce.oi || 0;
-    strikes[strike].peOI += pe.oi || 0;
-  });
-  var minPain = 0, minPainValue = Infinity;
-  Object.keys(strikes).forEach(function(strike) {
-    var pain = 0;
-    Object.keys(strikes).forEach(function(s) {
-      var diff = Math.abs(+s - +strike);
-      pain += strikes[s].ceOI * (+s > +strike ? diff : 0) + strikes[s].peOI * (+s < +strike ? diff : 0);
-    });
-    if (pain < minPainValue) { minPainValue = pain; minPain = +strike; }
-  });
-  return minPain;
-}
-
-function calcMaxOIStrike(data) {
-  if (!data || !data.length) return 0;
-  var maxTotal = 0, maxStrike = 0;
-  data.forEach(function(d) {
-    var ce = (d.call_options && d.call_options.market_data) || {};
-    var pe = (d.put_options && d.put_options.market_data) || {};
-    var total = (ce.oi || 0) + (pe.oi || 0);
-    if (total > maxTotal) { maxTotal = total; maxStrike = d.strike_price; }
-  });
-  return maxStrike;
-}
-
 function processChain(data) {
   chainData = data;
   var cOI = 0, pOI = 0, cB = 0, pB = 0, cU = 0, pU = 0, spot = 0;
@@ -1137,9 +1166,9 @@ function processChain(data) {
     var peDiff = (pe.oi||0) - (pe.prev_oi||0);
     if (ce.prev_oi === 0 && ce.oi > 0) ceDiff = ce.oi;
     if (pe.prev_oi === 0 && pe.oi > 0) peDiff = pe.oi;
-    cB += Math.max(0, ceDiff);
+    cB += Math.max(0,  ceDiff);
     cU += Math.max(0, -ceDiff);
-    pB += Math.max(0, peDiff);
+    pB += Math.max(0,  peDiff);
     pU += Math.max(0, -peDiff);
   });
   var pcrNum = cOI > 0 ? pOI / cOI : 1;
@@ -1183,9 +1212,8 @@ function processChain(data) {
     else if (priceDirShort < 0 && netCallWrite > netPutWrite && netCallWrite > cfgBuild) { sigType = '📉 Short Build-up'; bull = false; trendScore -= 2; if (cfgUsePCR && pcrSent === 'STRONG_BULL') isSideways = true; }
     else if (netPutWrite > netCallWrite * 1.3 && netPutWrite > cfgBuild) { sigType = '🟢 Put Dominant'; bull = true; trendScore += 1; if (cfgUsePCR && pcrSent === 'STRONG_BEAR') isSideways = true; }
     else if (netCallWrite > netPutWrite * 1.3 && netCallWrite > cfgBuild) { sigType = '🔴 Call Dominant'; bull = false; trendScore -= 1; if (cfgUsePCR && pcrSent === 'STRONG_BULL') isSideways = true; }
-    else if (Math.abs(trendScore) >= 3 && totalWrite > cfgMinOI * 0.7) {
-      if (trendScore > 0) { sigType = '📊 Trend Bias Bull'; bull = true; } else { sigType = '📊 Trend Bias Bear'; bull = false; }
-    } else { isSideways = true; }
+    else if (Math.abs(trendScore) >= 3 && totalWrite > cfgMinOI * 0.7) { if (trendScore > 0) { sigType = '📊 Trend Bias Bull'; bull = true; } else { sigType = '📊 Trend Bias Bear'; bull = false; } }
+    else { isSideways = true; }
   }
   prevNetCall = netCallWrite; prevNetPut = netPutWrite;
   prevCB = cB; prevPB = pB;
@@ -1269,7 +1297,65 @@ function processChain(data) {
   $('chainCount').textContent = n + ' strikes';
 }
 
-// ==================== OPTION TRADING ====================
+function calcSupportResistanceLevels(data, spot) {
+  if (!data || !data.length) return { support: [], resistance: [] };
+  var maxCeOI = 0, maxPeOI = 0, maxCeStrike = 0, maxPeStrike = 0;
+  var secondCeOI = 0, secondPeOI = 0, secondCeStrike = 0, secondPeStrike = 0;
+  data.forEach(function(d) {
+    var ce = (d.call_options && d.call_options.market_data) || {};
+    var pe = (d.put_options && d.put_options.market_data) || {};
+    var ceOI = ce.oi || 0, peOI = pe.oi || 0, strike = d.strike_price;
+    if (ceOI > maxCeOI) { secondCeOI = maxCeOI; secondCeStrike = maxCeStrike; maxCeOI = ceOI; maxCeStrike = strike; }
+    else if (ceOI > secondCeOI) { secondCeOI = ceOI; secondCeStrike = strike; }
+    if (peOI > maxPeOI) { secondPeOI = maxPeOI; secondPeStrike = maxPeStrike; maxPeOI = peOI; maxPeStrike = strike; }
+    else if (peOI > secondPeOI) { secondPeOI = peOI; secondPeStrike = strike; }
+  });
+  var resistance = [], support = [];
+  if (maxCeStrike > 0) resistance.push(maxCeStrike);
+  if (secondCeStrike > 0 && secondCeStrike !== maxCeStrike) resistance.push(secondCeStrike);
+  if (maxPeStrike > 0) support.push(maxPeStrike);
+  if (secondPeStrike > 0 && secondPeStrike !== maxPeStrike) support.push(secondPeStrike);
+  resistance.sort(function(a, b) { return b - a; });
+  support.sort(function(a, b) { return a - b; });
+  return { support: support, resistance: resistance };
+}
+
+function calcMaxPain(data, spot) {
+  if (!data || !data.length) return 0;
+  var strikes = {};
+  data.forEach(function(d) {
+    var strike = d.strike_price;
+    if (!strikes[strike]) strikes[strike] = { ceOI: 0, peOI: 0 };
+    var ce = (d.call_options && d.call_options.market_data) || {};
+    var pe = (d.put_options && d.put_options.market_data) || {};
+    strikes[strike].ceOI += ce.oi || 0;
+    strikes[strike].peOI += pe.oi || 0;
+  });
+  var minPain = 0, minPainValue = Infinity;
+  Object.keys(strikes).forEach(function(strike) {
+    var pain = 0;
+    Object.keys(strikes).forEach(function(s) {
+      var diff = Math.abs(+s - +strike);
+      pain += strikes[s].ceOI * (+s > +strike ? diff : 0) + strikes[s].peOI * (+s < +strike ? diff : 0);
+    });
+    if (pain < minPainValue) { minPainValue = pain; minPain = +strike; }
+  });
+  return minPain;
+}
+
+function calcMaxOIStrike(data) {
+  if (!data || !data.length) return 0;
+  var maxTotal = 0, maxStrike = 0;
+  data.forEach(function(d) {
+    var ce = (d.call_options && d.call_options.market_data) || {};
+    var pe = (d.put_options && d.put_options.market_data) || {};
+    var total = (ce.oi || 0) + (pe.oi || 0);
+    if (total > maxTotal) { maxTotal = total; maxStrike = d.strike_price; }
+  });
+  return maxStrike;
+}
+
+// ==================== OPTION TRADING FUNCTIONS ====================
 function getATMContract(direction) {
   if (!chainData || !chainData.length) return null;
   var spot = parseFloat($('spotV').textContent) || 0;
@@ -1343,11 +1429,12 @@ async function fetchOptionQuote() {
 
 function checkSLTP(currentLtp) {
   if (!tradeEntry || !tradeEntry.entry || currentLtp <= 0) return;
-  var pnl = (currentLtp - tradeEntry.entry) / tradeEntry.entry * 100;
-  var sl = parseFloat($('tradeSL').value) || 0.5;
+  var profit = currentLtp - tradeEntry.entry;
+  var pnlPct = (profit / tradeEntry.entry) * 100;
+  var sl = parseFloat($('tradeSL').value) || 0.75;
   var tp = parseFloat($('tradeTP').value) || 1.5;
-  if (pnl <= -sl || pnl >= tp) {
-    var reason = pnl >= tp ? 'TP ✓' : 'SL ✗';
+  if (pnlPct <= -sl || pnlPct >= tp) {
+    var reason = pnlPct >= tp ? 'TP ✓' : 'SL ✗';
     closeOptionTrade(reason);
   }
 }
@@ -1394,7 +1481,7 @@ function updateActiveTrade(ltp) {
   $('atPLpts').style.color = pnlColor;
   $('atPLrs').textContent = '₹'+(pnlRs>=0?'+':'')+Math.round(pnlRs).toLocaleString('en-IN');
   $('atPLrs').style.color = pnlColor;
-  var sl = parseFloat($('tradeSL').value)||0.5;
+  var sl = parseFloat($('tradeSL').value)||0.75;
   var tp = parseFloat($('tradeTP').value)||1.5;
   var slPx = entry * (1 - sl/100);
   var tpPx = entry * (1 + tp/100);
@@ -1408,56 +1495,6 @@ function updateActiveTrade(ltp) {
   }
 }
 
-function checkTradeSignal(signal, spot) {
-  if (!tradeRunning) return;
-  var validSignal = (signal === 'BULL' || signal === 'BEAR');
-  var ist = getISTNow();
-  var marketOpen = 9 * 60 + 15, marketClose = 15 * 60 + 25;
-  var inMarket = (ist.total >= marketOpen && ist.total <= marketClose);
-  if (!inMarket) {
-    if (tradeEntry && tradeEntry.signal && ist.total > marketClose) closeOptionTrade('EOD Exit');
-    return;
-  }
-  if (!spot || spot <= 0 || spot > 200000) return;
-  var now = new Date();
-  var nowMs = now.getTime();
-  if (!tradeEntry || !tradeEntry.signal) {
-    if (!validSignal) return;
-    enterOptionTrade(signal, spot);
-    return;
-  }
-  var heldMs = nowMs - (tradeEntry.entryMs || nowMs);
-  if (heldMs < 60000) return;
-  if (validSignal && signal !== tradeEntry.signal) {
-    closeOptionTrade('Reversal', function() { enterOptionTrade(signal, spot, 'Reversal'); });
-  }
-}
-
-function manualClose() {
-  if (!tradeEntry || !tradeEntry.signal) return;
-  closeOptionTrade('Manual Close');
-}
-
-function editSL() {
-  var cur = parseFloat($('tradeSL').value)||0.5;
-  var val = prompt('New SL % (current: '+cur+'%)', cur);
-  if (val && !isNaN(parseFloat(val))) { $('tradeSL').value = parseFloat(val); addTradeLog('SL changed to ' + parseFloat(val) + '%'); }
-}
-
-function editTP() {
-  var cur = parseFloat($('tradeTP').value)||1.5;
-  var val = prompt('New TP % (current: '+cur+'%)', cur);
-  if (val && !isNaN(parseFloat(val))) { $('tradeTP').value = parseFloat(val); addTradeLog('TP changed to ' + parseFloat(val) + '%'); }
-}
-
-function toggleTrailSL() {
-  trailSLEnabled = !trailSLEnabled;
-  trailSLPeak = 0;
-  $('atTrailval').textContent = trailSLEnabled ? 'ON 🔒' : 'OFF';
-  $('atTrailval').style.color = trailSLEnabled ? 'var(--green)' : '#fbbf24';
-  addTradeLog('Trail SL: ' + (trailSLEnabled ? 'ON' : 'OFF'));
-}
-
 // ==================== SESSION STATS ====================
 function updateSessionStats() {
   var el = $('sessionPLVal');
@@ -1468,8 +1505,6 @@ function updateSessionStats() {
   $('sessionWins').textContent = sessionWins;
   $('sessionWR').textContent = sessionTradeCount ? Math.round(sessionWins/sessionTradeCount*100)+'%' : '0%';
 }
-
-function renderClosedTrades() {}
 
 // ==================== TRADE LOG & STATE ====================
 function addTradeLog(msg, pnl) {
@@ -1523,7 +1558,6 @@ function loadTradeState() {
     renderTradeLog();
     updateTradeStats();
     updateSessionStats();
-    // *** FIX: restart option update timer if trade was open ***
     if (tradeRunning && tradeEntry && tradeEntry.optionKey) {
       startOptionUpdate();
     }
@@ -1564,28 +1598,12 @@ function toggleTradeBot() {
     $('tradeStatus').textContent = 'Running (' + tradeMode + ')' + (inMkt ? ' 🟢 Market Open' : ' 🔴 Market Closed');
     $('tradeStatus').className = 'trade-status running';
     addTradeLog('Bot started [' + tradeMode + '] | Market: ' + (inMkt ? 'OPEN' : 'CLOSED — waiting 09:15'));
-    // *** FIX: start option update timer if trade already open ***
-    if (tradeEntry && tradeEntry.optionKey) {
-      startOptionUpdate();
-    }
-    if (window._botStatusTimer) clearInterval(window._botStatusTimer);
-    window._botStatusTimer = setInterval(function() {
-      if (!tradeRunning) { clearInterval(window._botStatusTimer); return; }
-      var t = getISTNow();
-      var inM = t.total >= marketOpen && t.total <= marketClose;
-      $('tradeStatus').textContent = 'Running (' + tradeMode + ')' + (inM ? ' 🟢 Market Open' : ' 🔴 Market Closed');
-    }, 30000);
+    if (tradeEntry && tradeEntry.optionKey) startOptionUpdate();
   }
 }
 
 function setTradeMode() {
   tradeMode = document.querySelector('input[name="tradeMode"]:checked').value;
-}
-
-function toggleTrade() {
-  var body = $('tradeBody');
-  body.classList.toggle('open');
-  $('tradeToggle').textContent = body.classList.contains('open') ? '▲' : '▼';
 }
 
 // ==================== SIGNAL LOG ====================
@@ -1758,7 +1776,6 @@ function startAuto() {
   refreshTimer = setInterval(function() { if (curIK && tok) liveUpdate(); }, 5000);
   if (chainTimer) clearInterval(chainTimer);
   chainTimer = setInterval(function() { var k = curIK, ex = $('expSel').value; if (k && ex) fetchChain(); }, 60000);
-  // restart option update if bot running
   if (tradeRunning && tradeEntry && tradeEntry.optionKey) startOptionUpdate();
 }
 
@@ -1828,7 +1845,71 @@ async function go(url) {
   return r.json();
 }
 
-function showLoad(v) { var e = $('loadMsg'); if (e) e.style.display = v ? 'flex' : 'none'; }
+function showLoad(v) { var e = $('loadMsg'); if (e) e.style.display = v ? 'flex
+  function showLoad(v) { var e = $('loadMsg'); if (e) e.style.display = v ? 'flex' : 'none'; }
+
+function checkTradeSignal(signal, spot) {
+  if (!tradeRunning) return;
+  var ist = getISTNow();
+  // BLOCK FIRST 2 MINUTES (9:15 to 9:17)
+  if (ist.total < 9 * 60 + 17) return;
+
+  var validSignal = (signal === 'BULL' || signal === 'BEAR');
+  var marketOpen  = 9 * 60 + 15;
+  var marketClose = 15 * 60 + 25;
+  var inMarket = (ist.total >= marketOpen && ist.total <= marketClose);
+
+  if (!inMarket) {
+    if (tradeEntry && tradeEntry.signal && ist.total > marketClose) {
+      closeOptionTrade('EOD Exit');
+    }
+    return;
+  }
+
+  if (!spot || spot <= 0 || spot > 200000) return;
+
+  var now = new Date();
+  var nowMs = now.getTime();
+
+  if (!tradeEntry || !tradeEntry.signal) {
+    if (!validSignal) return;
+    enterOptionTrade(signal, spot);
+    return;
+  }
+
+  var heldMs = nowMs - (tradeEntry.entryMs || nowMs);
+  var minHoldMs = 60000;
+  if (heldMs < minHoldMs) return;
+
+  if (validSignal && signal !== tradeEntry.signal) {
+    closeOptionTrade('Reversal', function() { enterOptionTrade(signal, spot, 'Reversal'); });
+  }
+}
+
+function manualClose() {
+  if (!tradeEntry || !tradeEntry.signal) return;
+  closeOptionTrade('Manual Close');
+}
+
+function editSL() {
+  var cur = parseFloat($('tradeSL').value)||0.75;
+  var val = prompt('New SL % (current: '+cur+'%)', cur);
+  if (val && !isNaN(parseFloat(val))) { $('tradeSL').value = parseFloat(val); addTradeLog('SL changed to ' + parseFloat(val) + '%'); }
+}
+
+function editTP() {
+  var cur = parseFloat($('tradeTP').value)||1.5;
+  var val = prompt('New TP % (current: '+cur+'%)', cur);
+  if (val && !isNaN(parseFloat(val))) { $('tradeTP').value = parseFloat(val); addTradeLog('TP changed to ' + parseFloat(val) + '%'); }
+}
+
+function toggleTrailSL() {
+  trailSLEnabled = !trailSLEnabled;
+  trailSLPeak = 0;
+  $('atTrailval').textContent = trailSLEnabled ? 'ON 🔒' : 'OFF';
+  $('atTrailval').style.color = trailSLEnabled ? 'var(--green)' : '#fbbf24';
+  addTradeLog('Trail SL: ' + (trailSLEnabled ? 'ON' : 'OFF'));
+}
 
 // ==================== INIT ====================
 window.onload = function() {
@@ -1838,7 +1919,13 @@ window.onload = function() {
   renderSigLog();
   loadTradeState();
   updateTradeStats();
-  try { if (localStorage.getItem('ema_minimized') === '1') { emaMinimized = true; var leg = $('emaLeg'); if (leg) leg.style.display = 'none'; } } catch(e) {}
+  try {
+    if (localStorage.getItem('ema_minimized') === '1') {
+      emaMinimized = true;
+      var leg = $('emaLeg');
+      if (leg) leg.style.display = 'none';
+    }
+  } catch(e) {}
 };
 
 document.addEventListener('click', function(e) {
