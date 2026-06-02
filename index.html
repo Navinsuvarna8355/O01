@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>OI Momentum</title>
-<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -14,7 +13,6 @@
   --green:#00dc82;--red:#f5365c;--blue:#3b82f6;--yellow:#fbbf24;
 }
 html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
-
 .hdr{background:var(--card);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200;}
 .logo{font-size:16px;font-weight:700;}
 .logo span{color:var(--green);}
@@ -25,7 +23,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 @keyframes revPulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 50px);padding:16px;}
 .login-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:380px;}
 .login-box h2{text-align:center;margin-bottom:6px;font-size:18px;}
@@ -34,32 +31,25 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .fld input{width:100%;background:var(--bg);border:1px solid var(--border);padding:10px;color:var(--t1);border-radius:6px;font-size:13px;margin-bottom:14px;}
 .fld input:focus{outline:none;border-color:var(--blue);}
 .btn-login{width:100%;background:var(--green);border:none;padding:12px;border-radius:6px;font-weight:700;font-size:14px;color:#000;cursor:pointer;}
-
 .dash{display:flex;flex-direction:column;gap:10px;padding:10px;}
-
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;overflow:visible;position:relative;}
 .chart-card.minimized #chartWrap,.chart-card.minimized .ohlc-row,.chart-card.minimized .sig-bar,.chart-card.minimized #emaLeg{display:none;}
 .chart-card.minimized{height:auto!important;}
-
 .chart-top{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
 .chart-sym{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
 #barInfo{font-size:10px;color:var(--t2);}
-
 .tf-row{display:flex;align-items:center;gap:3px;flex-wrap:wrap;}
 .tf-btn{background:none;border:none;color:var(--t2);padding:4px 8px;border-radius:3px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.15s;}
 .tf-btn:hover{color:var(--t1);}
 .tf-btn.act{background:var(--blue);color:#fff;border-radius:3px;}
 .ind-btn{background:none;border:1px solid var(--border);color:var(--t2);padding:4px 9px;border-radius:3px;cursor:pointer;font-size:11px;}
 .ind-btn:hover{border-color:var(--t2);color:var(--t1);}
-
 .ohlc-row{padding:4px 10px;font-size:11px;font-family:monospace;display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);align-items:center;min-height:24px;background:rgba(0,0,0,0.15);}
 .oh{color:var(--t1);} .hh{color:var(--green);} .lh{color:var(--red);} .ch{color:var(--yellow);font-weight:700;}
 #cTime{color:var(--t2);font-size:10px;margin-left:auto;}
-
 #chartWrap{position:relative;width:100%;height:320px;}
 #chart{width:100%;height:100%;}
 #loadMsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--t2);font-size:13px;pointer-events:none;background:rgba(21,28,40,0.6);z-index:10;}
-
 #emaLeg{position:absolute;top:28px;left:4px;z-index:40;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
 #emaLeg.minimized{display:none!important;}
 #emaMinBtn{position:absolute;top:4px;left:4px;z-index:45;background:none;border:1px solid var(--border);color:var(--t2);padding:1px 4px;border-radius:2px;cursor:pointer;font-size:9px;}
@@ -70,12 +60,10 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .el-val{color:var(--t1);font-weight:700;min-width:48px;}
 .el-x{color:#555;font-size:9px;margin-left:2px;}
 .el-x:hover{color:var(--red);}
-
 .sig-bar{padding:7px;font-size:12px;font-weight:700;text-align:center;border-top:1px solid var(--border);border-radius:0 0 10px 10px;}
 .sig-bar.bull{background:rgba(0,220,130,0.08);color:var(--green);}
 .sig-bar.bear{background:rgba(245,54,92,0.08);color:var(--red);}
 .sig-bar.neu{background:rgba(251,191,36,0.06);color:var(--yellow);}
-
 #indPanel{display:none;position:absolute;right:10px;top:44px;z-index:300;background:#1a2333;border:1px solid var(--border);border-radius:8px;padding:10px;width:160px;box-shadow:0 8px 28px rgba(0,0,0,0.6);}
 .ip-title{font-size:10px;color:var(--t2);margin-bottom:8px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
 .ip-row{display:flex;align-items:center;justify-content:space-between;padding:7px 6px;cursor:pointer;border-radius:4px;font-size:12px;color:var(--t2);}
@@ -83,7 +71,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .ip-plus{font-size:17px;color:var(--green);line-height:1;}
 .ip-chk{font-size:13px;color:var(--t2);line-height:1;}
 .ip-chk.on{color:var(--green);}
-
 #emaModal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:16px;}
 #emaModal.open{display:flex;}
 .mbox{background:#1a2333;border:1px solid var(--border);border-radius:10px;padding:20px;width:100%;max-width:290px;box-shadow:0 20px 60px rgba(0,0,0,0.7);}
@@ -99,18 +86,15 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .mact button{flex:1;padding:9px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;border:none;}
 .btn-ok{background:var(--blue);color:#fff;}
 .btn-del{background:rgba(245,54,92,0.15);color:var(--red);}
-
 .ctrl-row{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;}
 .ctrl-row select{flex:1;min-width:130px;background:var(--bg);border:1px solid var(--border);color:var(--t1);padding:8px 10px;border-radius:5px;font-size:13px;}
 .ctrl-row select:focus{outline:none;border-color:var(--blue);}
 .btn-load{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;}
-
 .oi-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 .oi-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;}
 .oi-lbl{font-size:10px;color:var(--t2);margin-bottom:3px;}
 .oi-val{font-size:13px;font-weight:700;font-family:monospace;}
 .oi-val.r{color:var(--red);} .oi-val.g{color:var(--green);}
-
 .chain-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .chain-hdr{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;}
 .badge{background:var(--blue);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;}
@@ -123,7 +107,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .atm{background:rgba(251,191,36,0.08);}
 .cr{color:var(--red);} .cg{color:var(--green);}
 .sb{color:var(--green);font-weight:700;} .ss{color:var(--red);font-weight:700;}
-
 .sig-log-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;}
 .sig-log-hdr{padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;}
 .sig-log-body{display:none;max-height:200px;overflow-y:auto;padding:8px;}
@@ -132,7 +115,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .sig-time{color:var(--t2);}
 .sig-type.bull{color:var(--green);font-weight:700;}
 .sig-type.bear{color:var(--red);font-weight:700;}
-
 .trade-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;}
 .trade-hdr{padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;}
 .trade-body{display:none;padding:12px;}
@@ -147,13 +129,11 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 #tradeBtn.start{background:var(--green);color:#000;}
 #tradeBtn.stop{background:var(--red);color:#fff;}
 #tradeLog{max-height:120px;overflow-y:auto;padding:6px;background:var(--bg);border-radius:4px;font-size:11px;color:var(--t2);}
-
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .stat-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
 .stat-lbl{font-size:10px;color:var(--t2);margin-bottom:3px;}
 .stat-val{font-size:14px;font-weight:700;font-family:monospace;}
 .stat-val.g{color:var(--green);} .stat-val.r{color:var(--red);} .stat-val.y{color:var(--yellow);}
-
 .sig-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;}
 .sig-main{flex:1;text-align:center;}
 .sig-val{font-size:22px;font-weight:700;padding:10px 16px;border-radius:8px;margin-bottom:4px;}
@@ -161,10 +141,8 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
 .sv-bear{background:rgba(245,54,92,0.15);color:var(--red);}
 .sv-neu{background:rgba(251,191,36,0.1);color:var(--yellow);}
 .sig-sub{font-size:11px;color:var(--t2);}
-
 .side-col{display:none;}
 .main-col{width:100%;display:flex;flex-direction:column;gap:10px;}
-
 @media(min-width:768px){
   .dash{flex-direction:row;align-items:flex-start;padding:14px;}
   .side-col{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;}
@@ -183,8 +161,8 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
   <div class="logo">OI <span>Momentum</span></div>
   <div class="hdr-right hidden" id="hdrRight">
     <span id="liveDot" style="display:none"><span class="live-dot"></span> <span style="font-size:11px;color:var(--t2);">Live</span></span>
-     <label class="auto-lbl"><input type="checkbox" id="autoChk" checked onchange="toggleAuto()"> Auto</label>
-     <span id="lastUpd" style="font-size:10px;color:var(--t2);"></span>
+    <label class="auto-lbl"><input type="checkbox" id="autoChk" checked onchange="toggleAuto()"> Auto</label>
+    <span id="lastUpd" style="font-size:10px;color:var(--t2);"></span>
     <button class="btn-out" onclick="doLogout()">Logout</button>
   </div>
 </header>
@@ -451,8 +429,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
       {g:'F&O', v:'NSE_EQ|INE010D01021', n:'ZYDUSLIFE'},
     ];
 
-    var symDropOpen = false;
-
     function renderSymDrop(filter) {
       var drop = document.getElementById('symDrop');
       var q = (filter||'').toLowerCase().trim();
@@ -505,17 +481,6 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
       loadCandles(curIK, curTF, false);
     }
 
-    document.addEventListener('mouseover', function(e) {
-      if (e.target.classList.contains('sym-opt')) {
-        e.target.style.background = 'rgba(59,130,246,0.15)';
-      }
-    });
-    document.addEventListener('mouseout', function(e) {
-      if (e.target.classList.contains('sym-opt')) {
-        e.target.style.background = '';
-      }
-    });
-
     window.addEventListener('DOMContentLoaded', function() {
       document.getElementById('symSearch').value = 'NIFTY 50';
       document.getElementById('symSel').value = 'NSE_INDEX|Nifty 50';
@@ -535,7 +500,7 @@ html,body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',sans-serif
             <th>Signal</th>
           </tr></thead>
           <tbody id="chainBody">
-            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t2);">Load chain to view</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t2);">Load chain to view</td></tr>
           </tbody>
         </table>
       </div>
