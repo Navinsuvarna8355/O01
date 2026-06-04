@@ -261,7 +261,7 @@ const PAL=['#fbbf24','#3b82f6','#00dc82','#f5365c','#a855f7','#f97316','#06b6d4'
 const TF={'1minute':{iv:'1minute',intra:true,days:5},'5minute':{iv:'1minute',intra:true,days:5,agg:5},'15minute':{iv:'1minute',intra:true,days:15,agg:15},'30minute':{iv:'30minute',intra:true,days:60},'1hour':{iv:'1minute',intra:true,days:30,agg:60},'day':{iv:'day',intra:false,days:365},'week':{iv:'week',intra:false,days:730}};
 var tok='',chart=null,cSeries=null,cData=[],curIK='NSE_INDEX|Nifty 50',curTF='5minute',emaList=[],emaId=0,modalId=null,modalColor='#fbbf24',signalLog=[],lastSignal='',tradeMode='paper',tradeRunning=false,tradeLog=[],tradeEntry={},totalProfit=0,totalLoss=0,totalTrades=0;
 var prevCB=0,prevPB=0,signalCount=0,prevSignal=null,require2Consecutive=true,skipHighPCR=true,highPCRThreshold=1.2,supportLevels=[],resistanceLevels=[],maxPainStrike=0;
-var pendingSignal='',pendingCount=0,confirmedSignal='',CONFIRM_THRESHOLD=2,OI_MIN_THRESHOLD=500000;
+var pendingSignal='',pendingCount=0,confirmedSignal='',CONFIRM_THRESHOLD=1,OI_MIN_THRESHOLD=500000;
 var prevNetCall=0,prevNetPut=0,prevPCR=0,prevCU_rev=0,prevPU_rev=0,pcrRisingCount=0,pcrFallingCount=0,reversalAlert='',prevReversalAlert='';
 var signalMarkers=[],trailSLEnabled=false,trailSLPeak=0,sessionPLtotal=0,sessionWins=0,sessionTradeCount=0,closedTrades=[],chainData=[],optionUpdateTimer=null;
 var indState={support:{on:false,series:[],levels:[],color:'rgba(0,220,130,0.7)',lineStyle:1,lineWidth:1,label:'S'},resistance:{on:false,series:[],levels:[],color:'rgba(245,54,92,0.7)',lineStyle:1,lineWidth:1,label:'R'},maxpain:{on:false,series:[],value:0,color:'rgba(251,191,36,0.9)',lineStyle:0,lineWidth:2,label:'MaxPain'},maxoi:{on:false,series:[],value:0,color:'rgba(168,85,247,0.8)',lineStyle:2,lineWidth:1,label:'MaxOI'}};
@@ -278,10 +278,28 @@ async function fetchChain(){
     var k=$('symSel')?$('symSel').value:curIK;
     var ex=$('expSel').value;
     if(!k||!ex){alert('Select symbol and expiry!');return;}
-    // IMPORTANT FIX: सिग्नल ट्रैकिंग वेरिएबल्स रीसेट न करें, ताकि कन्फर्मेशन काउंटर बना रहे
     try{
         var d=await go('https://api.upstox.com/v2/option/chain?instrument_key='+encodeURIComponent(k)+'&expiry_date='+ex);
         processChain(d.data);
+        // IMPORTANT: If trade is active, try to update LTP from chain data (fallback)
+        if(tradeEntry && tradeEntry.optionKey && chainData){
+            var found = null;
+            for(var i=0; i<chainData.length; i++){
+                var row = chainData[i];
+                var ce = row.call_options;
+                var pe = row.put_options;
+                if(ce && ce.instrument_key === tradeEntry.optionKey){
+                    found = ce.market_data; break;
+                }
+                if(pe && pe.instrument_key === tradeEntry.optionKey){
+                    found = pe.market_data; break;
+                }
+            }
+            if(found && found.ltp){
+                updateActiveTrade(found.ltp);
+                checkSLTP(found.ltp);
+            }
+        }
     }catch(e){alert('Chain error: '+e.message);}
 }
 function fmt(n){if(!n)return'0';if(Math.abs(n)>=1e7)return(n/1e7).toFixed(1)+'Cr';if(Math.abs(n)>=1e5)return(n/1e5).toFixed(1)+'L';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(0)+'K';return(+n).toFixed(0)}
@@ -303,7 +321,7 @@ function getATMContract(direction){if(!chainData||!chainData.length)return null;
 function enterOptionTrade(signal,spot,reason){var option=getATMContract(signal);if(!option){addTradeLog('No option contract found for signal '+signal);return}var now=new Date();var timeStr=now.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false});var qty=parseInt($('tradeQty').value)||1;tradeEntry={entryTime:timeStr,signal:signal,optionKey:option.instrument_key,optionType:signal==='BULL'?'CE':'PE',strike:option.strike,entry:option.ltp,qty:qty,entryMs:now.getTime()};trailSLPeak=option.ltp;addTradeLog('Entry '+signal+' ('+option.display+') @ '+option.ltp.toFixed(2)+' | Qty:'+qty+(reason?' | '+reason:''));updateActiveTrade(option.ltp);startOptionUpdate()}
 function startOptionUpdate(){if(optionUpdateTimer)clearInterval(optionUpdateTimer);optionUpdateTimer=setInterval(fetchOptionQuote,2000)}
 function stopOptionUpdate(){if(optionUpdateTimer){clearInterval(optionUpdateTimer);optionUpdateTimer=null}}
-async function fetchOptionQuote(){if(!tradeEntry||!tradeEntry.optionKey)return;try{var r=await go('https://api.upstox.com/v2/market-quote/quotes?instrument_key='+encodeURIComponent(tradeEntry.optionKey));if(r&&r.data&&r.data[tradeEntry.optionKey]){var quote=r.data[tradeEntry.optionKey];var ltp=quote.last_price||0;if(ltp>0){updateActiveTrade(ltp);checkSLTP(ltp)}}}catch(e){addTradeLog('Quote error: '+e.message)}}
+async function fetchOptionQuote(){if(!tradeEntry||!tradeEntry.optionKey)return;try{var url='https://api.upstox.com/v2/market-quote/quotes?instrument_key='+encodeURIComponent(tradeEntry.optionKey);console.log('Fetching option quote:', url);var r=await go(url);if(r&&r.data&&r.data[tradeEntry.optionKey]){var quote=r.data[tradeEntry.optionKey];var ltp=quote.last_price||0;console.log('Option LTP:', ltp);if(ltp>0){updateActiveTrade(ltp);checkSLTP(ltp)}}else{console.log('Quote not found or missing data', r);}}catch(e){console.log('Quote error:', e.message);addTradeLog('Quote error: '+e.message)}}
 function checkSLTP(currentLtp){if(!tradeEntry||!tradeEntry.entry||currentLtp<=0)return;var profit=currentLtp-tradeEntry.entry;var pnlPct=(profit/tradeEntry.entry)*100;var sl=parseFloat($('tradeSL').value)||0.75;var tp=parseFloat($('tradeTP').value)||1.5;if(pnlPct<=-sl||pnlPct>=tp){var reason=pnlPct>=tp?'TP ✓':'SL ✗';closeOptionTrade(reason)}}
 function closeOptionTrade(reason,callback){if(!tradeEntry||!tradeEntry.entry)return;var currentLtp=parseFloat($('atLTP').textContent)||tradeEntry.entry;var pnlPct=((currentLtp-tradeEntry.entry)/tradeEntry.entry*100).toFixed(2);var pnlRs=(currentLtp-tradeEntry.entry)*65*(tradeEntry.qty||1);sessionPLtotal+=pnlRs;sessionTradeCount++;if(pnlRs>0)sessionWins++;addTradeLog(reason+' Exit @ '+currentLtp.toFixed(2)+' | P&L: '+pnlPct+'% | ₹'+Math.round(pnlRs).toLocaleString('en-IN')+' | Strike:'+(tradeEntry.strike||'-')+' Qty:'+(tradeEntry.qty||1));tradeEntry={};trailSLPeak=0;stopOptionUpdate();updateActiveTrade(0);updateSessionStats();if(callback)callback()}
 function updateActiveTrade(ltp){var at=$('activeTrade'),nt=$('noTrade');if(!tradeEntry||!tradeEntry.signal){if(at)at.style.display='none';if(nt)nt.style.display='block';return}if(at)at.style.display='block';if(nt)nt.style.display='none';var isBull=tradeEntry.signal==='BULL';var entry=tradeEntry.entry||0;var qty=tradeEntry.qty||1;var pnl=ltp-entry;var pnlRs=pnl*65*qty;var pct=entry>0?(pnl/entry*100):0;var pnlColor=pnl>=0?'#00ff88':'#ff3366';var hdr=$('activeTradeHdr');if(hdr)hdr.style.background=isBull?'linear-gradient(135deg,#064e3b,#065f46)':'linear-gradient(135deg,#7f1d1d,#991b1b)';$('atDir').textContent=(tradeEntry.optionType||(isBull?'CE':'PE'))+' '+(tradeEntry.strike||'')+' Qty:'+qty+' '+(isBull?'▲':'▼');$('atTime').textContent=tradeEntry.entryTime||'';$('atEntry').textContent=entry.toFixed(2);$('atLTP').textContent=ltp.toFixed(2);$('atPLpts').textContent=(pnl>=0?'+':'')+pnl.toFixed(1)+' pts ×'+qty;$('atPLpts').style.color=pnlColor;$('atPLrs').textContent='₹'+(pnlRs>=0?'+':'')+Math.round(pnlRs).toLocaleString('en-IN');$('atPLrs').style.color=pnlColor;var sl=parseFloat($('tradeSL').value)||0.75;var tp=parseFloat($('tradeTP').value)||1.5;var slPx=entry*(1-sl/100);var tpPx=entry*(1+tp/100);$('atSLval').textContent=slPx.toFixed(2)+' ✎';$('atTPval').textContent=tpPx.toFixed(2)+' ✎';if(trailSLEnabled&&entry>0){trailSLPeak=Math.max(trailSLPeak,ltp);var newSL=trailSLPeak*(1-sl/100);if(ltp<=newSL){closeOptionTrade('Trailing SL');return}$('atTrailval').textContent=newSL.toFixed(2)}}
@@ -353,7 +371,6 @@ function showLoad(v){var e=$('loadMsg');if(e)e.style.display=v?'flex':'none'}
 function checkTradeSignal(signal,spot){
     if(!tradeRunning) return;
     var ist=getISTNow();
-    // market pre-open check: allow only after 09:17
     if(ist.total<9*60+17) return;
     var validSignal=(signal==='BULL'||signal==='BEAR');
     var marketOpen=9*60+15, marketClose=15*60+25;
@@ -364,7 +381,6 @@ function checkTradeSignal(signal,spot){
         }
         return;
     }
-    // Spot > 0 only, not strict range (allow >0)
     if(!spot || spot<=0) return;
     var now=new Date();
     var nowMs=now.getTime();
@@ -374,7 +390,7 @@ function checkTradeSignal(signal,spot){
         return;
     }
     var heldMs=nowMs-(tradeEntry.entryMs||nowMs);
-    var minHoldMs=60000; // 1 minute minimum hold
+    var minHoldMs=60000;
     if(heldMs<minHoldMs) return;
     if(validSignal && signal!==tradeEntry.signal){
         closeOptionTrade('Reversal', function(){ enterOptionTrade(signal, spot, 'Reversal'); });
